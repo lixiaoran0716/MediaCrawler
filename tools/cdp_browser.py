@@ -146,9 +146,9 @@ class CDPBrowserManager:
 
         # 等待浏览器准备就绪
         if not self.launcher.wait_for_browser_ready(
-            self.debug_port, config.BROWSER_LAUNCH_TIMEOUT
+            self.debug_port, 60
         ):
-            raise RuntimeError(f"浏览器在 {config.BROWSER_LAUNCH_TIMEOUT} 秒内未能启动")
+            raise RuntimeError(f"浏览器在 60 秒内未能启动")
 
         # 额外等待一秒让CDP服务完全启动
         await asyncio.sleep(1)

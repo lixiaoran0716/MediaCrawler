@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger
+from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger, DateTime, Boolean
+from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -266,6 +267,9 @@ class XhsCreator(Base):
 
 class XhsNote(Base):
     __tablename__ = 'xhs_note'
+    __table_args__ = (
+        {'comment': '小红书笔记表', 'extend_existing': True},
+    )
     id = Column(Integer, primary_key=True)
     user_id = Column(String(255))
     nickname = Column(Text)
@@ -291,13 +295,53 @@ class XhsNote(Base):
     xsec_token = Column(Text)
 
 class XhsNoteComment(Base):
-    __tablename__ = 'xhs_note_comment'
+    __tablename__ = 'xhs_note_comments'
+    __table_args__ = (
+        {'comment': '小红书笔记评论表', 'extend_existing': True},
+    )
     id = Column(Integer, primary_key=True)
     user_id = Column(String(255))
     nickname = Column(Text)
     avatar = Column(Text)
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
+
+class NytimesNews(Base):
+    __tablename__ = 'nytimes_news'
+    __table_args__ = (
+        {'comment': '纽约时报新闻表', 'extend_existing': True},
+    )
+
+    id = Column(String(64), primary_key=True, comment='新闻唯一ID')
+    title = Column(String(255), nullable=False, comment='新闻标题')
+    url = Column(String(512), unique=True, nullable=False, comment='新闻链接')
+    summary = Column(Text, comment='新闻摘要')
+    image_url = Column(String(512), comment='图片链接')
+    publish_time = Column(DateTime, comment='发布时间')
+    crawl_time = Column(DateTime, default=datetime.now, comment='爬取时间')
+    source = Column(String(32), comment='来源平台')
+    is_processed = Column(Boolean, default=False, comment='是否已处理')
+    content = Column(Text, comment='新闻正文')
+
+    def __repr__(self):
+        return f'<NytimesNews(title="{self.title[:20]}...")>'
+
+class NytimesComment(Base):
+    __tablename__ = 'nytimes_comments'
+    __table_args__ = (
+        {'comment': '纽约时报新闻评论表', 'extend_existing': True},
+    )
+
+    id = Column(String(64), primary_key=True, comment='评论唯一ID')
+    news_id = Column(String(64), comment='关联新闻ID')
+    content = Column(Text, comment='评论内容')
+    author = Column(String(128), comment='评论作者')
+    publish_time = Column(DateTime, comment='发布时间')
+    crawl_time = Column(DateTime, default=datetime.now, comment='爬取时间')
+    likes = Column(String(32), comment='点赞数')
+
+    def __repr__(self):
+        return f'<NytimesComment(news_id="{self.news_id}", author="{self.author}")>'
     last_modify_ts = Column(BigInteger)
     comment_id = Column(String(255), index=True)
     create_time = Column(BigInteger, index=True)
@@ -430,5 +474,14 @@ class ZhihuCreator(Base):
     article_count = Column(Integer, default=0)
     column_count = Column(Integer, default=0)
     get_voteup_count = Column(Integer, default=0)
+    add_ts = Column(BigInteger)
+    last_modify_ts = Column(BigInteger)
+
+
+    content = Column(Text)
+    publish_time = Column(BigInteger)
+    author = Column(Text)
+    user_id = Column(Text)
+    like_count = Column(Integer, default=0)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)

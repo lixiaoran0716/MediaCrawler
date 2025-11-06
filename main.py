@@ -24,6 +24,7 @@ from media_platform.tieba import TieBaCrawler
 from media_platform.weibo import WeiboCrawler
 from media_platform.xhs import XiaoHongShuCrawler
 from media_platform.zhihu import ZhihuCrawler
+from media_platform.nytimes.core import NYTimesCrawler
 
 
 class CrawlerFactory:
@@ -35,6 +36,7 @@ class CrawlerFactory:
         "wb": WeiboCrawler,
         "tieba": TieBaCrawler,
         "zhihu": ZhihuCrawler,
+        "nytimes": NYTimesCrawler,
     }
 
     @staticmethod
@@ -44,7 +46,7 @@ class CrawlerFactory:
             raise ValueError(
                 "Invalid Media Platform Currently only supported xhs or dy or ks or bili ..."
             )
-        return crawler_class()
+        return crawler_class(config)
 
 
 crawler: Optional[AbstractCrawler] = None
@@ -63,9 +65,12 @@ async def main():
 
     # init db
     if args.init_db:
-        await db.init_db(args.init_db)
-        print(f"Database {args.init_db} initialized successfully.")
-        return  # Exit the main function cleanly
+            try:
+                await db.init_db(args.init_db)
+                print(f"Database {args.init_db} initialized successfully.")
+            except Exception as e:
+                print(f"Database initialization failed: {str(e)}")
+            return  # Exit the main function cleanly
 
 
 

@@ -11,10 +11,17 @@
 
 import argparse
 import logging
+import hashlib
+
 
 from .crawler_util import *
 from .slider_util import *
 from .time_util import *
+
+
+def generate_unique_id(input_str: str) -> str:
+    """生成唯一ID"""
+    return hashlib.sha256(input_str.encode()).hexdigest()[:16]
 
 
 def init_loging_config():
