@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 import urllib.parse
 
 from playwright.async_api import BrowserContext, Page, async_playwright
+from playwright_stealth import Stealth
 from bs4 import BeautifulSoup
 
 import config
@@ -39,7 +40,7 @@ class NYTimesCrawler(AbstractCrawler):
     cdp_manager: Optional[CDPBrowserManager]
 
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.config = config
         self.index_url = "https://m.cn.nytimes.com/china"
         self.user_agent = utils.get_user_agent()
@@ -280,7 +281,7 @@ class NYTimesCrawler(AbstractCrawler):
                 self.browser_context = await self.launch_browser_with_cdp(
                     playwright,
                     playwright_proxy_format,
-                    self.user_agent,
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                     headless=config.CDP_HEADLESS,
                 )
             else:
@@ -290,14 +291,22 @@ class NYTimesCrawler(AbstractCrawler):
                 self.browser_context = await self.launch_browser(
                     chromium,
                     playwright_proxy_format,
-                    self.user_agent,
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                     headless=config.HEADLESS
                 )
-                # 添加反检测脚本
-                await self.browser_context.add_init_script(path="libs/stealth.min.js")
-
+            stealth = Stealth()
+            await stealth.apply_stealth_async(self.browser_context)
             self.context_page = await self.browser_context.new_page()
-            await self.context_page.goto(self.index_url, timeout=60000, wait_until='networkidle')
+            # 使用更宽松的页面加载策略，避免networkidle导致的超时
+            utils.logger.debug(f"[NYTimesCrawler] 正在访问首页: {self.index_url}")
+            try:
+                await self.context_page.goto(self.index_url, timeout=30000, wait_until='domcontentloaded')
+                utils.logger.debug("[NYTimesCrawler] 页面DOM加载完成")
+                # 等待额外的时间确保主要内容加载
+                await asyncio.sleep(3)
+            except Exception as e:
+                utils.logger.error(f"[NYTimesCrawler] 页面访问失败: {str(e)}")
+                raise
 
             # 创建客户端
             self.nyt_client = await self.create_ny_client(httpx_proxy_format)

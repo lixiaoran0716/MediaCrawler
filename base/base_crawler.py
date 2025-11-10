@@ -16,6 +16,9 @@ from playwright.async_api import BrowserContext, BrowserType, Playwright
 
 class AbstractCrawler(ABC):
 
+    def __init__(self, config):
+        self.config = config
+
     @abstractmethod
     async def start(self):
         """

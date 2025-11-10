@@ -14,13 +14,13 @@ class NYTimesConfig(BaseSettings):
     # 新闻列表页URL
     NEWS_LIST_URL: str = "https://m.cn.nytimes.com/china"
     # 请求超时时间(秒)
-    REQUEST_TIMEOUT: int = 15
+    REQUEST_TIMEOUT: int = 60
     # 最大并发数
     MAX_CONCURRENCY: int = 5
     # 爬取间隔(秒)
     CRAWL_INTERVAL: int = 3
     # 是否启用代理
-    ENABLE_PROXY: bool = False
+    ENABLE_PROXY: bool = True
     # 代理池大小
     PROXY_POOL_SIZE: int = 5
     # 重试次数

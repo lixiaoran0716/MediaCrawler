@@ -10,7 +10,7 @@
 
 # 基础配置
 PLATFORM = "nytimes"  # 平台，xhs | dy | ks | bili | wb | tieba | zhihu
-KEYWORDS = "编程副业,编程兼职"  # 关键词搜索配置，以英文逗号分隔
+KEYWORDS = "特朗普"  # 关键词搜索配置，以英文逗号分隔
 LOGIN_TYPE = "phone"  # qrcode or phone or cookie
 COOKIES = ""
 CRAWLER_TYPE = (

@@ -25,7 +25,7 @@ def generate_unique_id(input_str: str) -> str:
 
 
 def init_loging_config():
-    level = logging.INFO
+    level = logging.DEBUG
     logging.basicConfig(
         level=level,
         format="%(asctime)s %(name)s %(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
