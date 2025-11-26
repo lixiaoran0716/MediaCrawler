@@ -20,6 +20,7 @@ import random
 import re
 import urllib
 import urllib.parse
+import uuid
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, cast
 
@@ -29,6 +30,9 @@ from playwright.async_api import Cookie, Page
 
 from . import utils
 
+
+def generate_random_id() -> str:
+    return str(uuid.uuid4())
 
 async def find_login_qrcode(page: Page, selector: str) -> str:
     """find login qrcode image from target selector"""

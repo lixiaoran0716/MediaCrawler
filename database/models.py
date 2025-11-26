@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger, DateTime, Boolean
+
 from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -455,6 +456,24 @@ class ZhihuComment(Base):
     user_avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+
+class QQNewsModel(Base):
+    __tablename__ = 'qq_news'
+
+    id = Column(String(32), primary_key=True, comment='新闻ID')
+    title = Column(String(500), nullable=False, comment='新闻标题')
+    url = Column(String(512), nullable=False, unique=True, comment='新闻URL')
+    content = Column(Text, nullable=False, comment='新闻内容')
+    author = Column(String(100), nullable=True, comment='发布人')
+    author_url = Column(String(512), nullable=True, comment='发布人链接')
+    publish_time = Column(DateTime, nullable=False, comment='发布时间')
+    publish_location = Column(String(100), nullable=True, comment='发布地点')
+    media_account = Column(String(100), nullable=True, comment='媒体账号')
+    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+
+    def __repr__(self):
+        return f'<QQNewsModel(title="{self.title[:20]}...")>'
 
 class ZhihuCreator(Base):
     __tablename__ = 'zhihu_creator'

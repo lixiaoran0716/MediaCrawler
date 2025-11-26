@@ -51,15 +51,16 @@ class BilibiliCrawler(AbstractCrawler):
     browser_context: BrowserContext
     cdp_manager: Optional[CDPBrowserManager]
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.index_url = "https://www.bilibili.com"
         self.user_agent = utils.get_user_agent()
         self.cdp_manager = None
 
     async def start(self):
         playwright_proxy_format, httpx_proxy_format = None, None
-        if config.ENABLE_IP_PROXY:
-            ip_proxy_pool = await create_ip_pool(config.IP_PROXY_POOL_COUNT, enable_validate_ip=True)
+        if self.config.ENABLE_IP_PROXY:
+            ip_proxy_pool = await create_ip_pool(self.config.IP_PROXY_POOL_COUNT, enable_validate_ip=True)
             ip_proxy_info: IpInfoModel = await ip_proxy_pool.get_proxy()
             playwright_proxy_format, httpx_proxy_format = utils.format_proxy_info(ip_proxy_info)
 
@@ -71,13 +72,13 @@ class BilibiliCrawler(AbstractCrawler):
                     playwright,
                     playwright_proxy_format,
                     self.user_agent,
-                    headless=config.CDP_HEADLESS,
+                    headless=self.config.CDP_HEADLESS,
                 )
             else:
                 utils.logger.info("[BilibiliCrawler] 使用标准模式启动浏览器")
                 # Launch a browser context.
                 chromium = playwright.chromium
-                self.browser_context = await self.launch_browser(chromium, None, self.user_agent, headless=config.HEADLESS)
+                self.browser_context = await self.launch_browser(chromium, None, self.user_agent, headless=self.config.HEADLESS)
                 # stealth.min.js is a js script to prevent the website from detecting the crawler.
                 await self.browser_context.add_init_script(path="libs/stealth.min.js")
 
@@ -88,11 +89,11 @@ class BilibiliCrawler(AbstractCrawler):
             self.bili_client = await self.create_bilibili_client(httpx_proxy_format)
             if not await self.bili_client.pong():
                 login_obj = BilibiliLogin(
-                    login_type=config.LOGIN_TYPE,
+                    login_type=self.config.LOGIN_TYPE,
                     login_phone="",  # your phone number
                     browser_context=self.browser_context,
                     context_page=self.context_page,
-                    cookie_str=config.COOKIES,
+                    cookie_str=self.config.COOKIES,
                 )
                 await login_obj.begin()
                 await self.bili_client.update_cookies(browser_context=self.browser_context)
@@ -102,7 +103,7 @@ class BilibiliCrawler(AbstractCrawler):
                 await self.search()
             elif config.CRAWLER_TYPE == "detail":
                 # Get the information and comments of the specified post
-                await self.get_specified_videos(config.BILI_SPECIFIED_ID_LIST)
+                await self.get_specified_videos(self.config.BILI_SPECIFIED_ID_LIST)
             elif config.CRAWLER_TYPE == "creator":
                 if config.CREATOR_MODE:
                     for creator_url in config.BILI_CREATOR_ID_LIST:

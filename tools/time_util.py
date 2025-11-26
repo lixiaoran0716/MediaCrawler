@@ -16,6 +16,7 @@
 
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 
 def get_current_timestamp() -> int:
@@ -84,6 +85,14 @@ def get_unix_time_from_time_str(time_str):
         return 0
     pass
 
+
+def parse_time(time_str: str) -> Optional[datetime]:
+    """Parse a time string into a datetime object."""
+    try:
+        unix_time = get_unix_time_from_time_str(time_str)
+        return datetime.fromtimestamp(unix_time / 1000, timezone.utc)
+    except Exception:
+        return None
 
 def get_unix_timestamp():
     return int(time.time())

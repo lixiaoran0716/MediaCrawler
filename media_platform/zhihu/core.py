@@ -46,7 +46,8 @@ class ZhihuCrawler(AbstractCrawler):
     browser_context: BrowserContext
     cdp_manager: Optional[CDPBrowserManager]
 
-    def __init__(self) -> None:
+    def __init__(self, config) -> None:
+        self.config = config
         self.index_url = "https://www.zhihu.com"
         # self.user_agent = utils.get_user_agent()
         self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
@@ -60,9 +61,9 @@ class ZhihuCrawler(AbstractCrawler):
 
         """
         playwright_proxy_format, httpx_proxy_format = None, None
-        if config.ENABLE_IP_PROXY:
+        if self.config.ENABLE_IP_PROXY:
             ip_proxy_pool = await create_ip_pool(
-                config.IP_PROXY_POOL_COUNT, enable_validate_ip=True
+                self.config.IP_PROXY_POOL_COUNT, enable_validate_ip=True
             )
             ip_proxy_info: IpInfoModel = await ip_proxy_pool.get_proxy()
             playwright_proxy_format, httpx_proxy_format = utils.format_proxy_info(
@@ -77,14 +78,14 @@ class ZhihuCrawler(AbstractCrawler):
                     playwright,
                     playwright_proxy_format,
                     self.user_agent,
-                    headless=config.CDP_HEADLESS,
+                    headless=self.config.CDP_HEADLESS,
                 )
             else:
                 utils.logger.info("[ZhihuCrawler] 使用标准模式启动浏览器")
                 # Launch a browser context.
                 chromium = playwright.chromium
                 self.browser_context = await self.launch_browser(
-                    chromium, None, self.user_agent, headless=config.HEADLESS
+                    chromium, None, self.user_agent, headless=self.config.HEADLESS
                 )
                 # stealth.min.js is a js script to prevent the website from detecting the crawler.
                 await self.browser_context.add_init_script(path="libs/stealth.min.js")
@@ -96,7 +97,7 @@ class ZhihuCrawler(AbstractCrawler):
             self.zhihu_client = await self.create_zhihu_client(httpx_proxy_format)
             if not await self.zhihu_client.pong():
                 login_obj = ZhiHuLogin(
-                    login_type=config.LOGIN_TYPE,
+                    login_type=self.config.LOGIN_TYPE,
                     login_phone="",  # input your phone number
                     browser_context=self.browser_context,
                     context_page=self.context_page,
@@ -117,13 +118,13 @@ class ZhihuCrawler(AbstractCrawler):
             await asyncio.sleep(5)
             await self.zhihu_client.update_cookies(browser_context=self.browser_context)
 
-            crawler_type_var.set(config.CRAWLER_TYPE)
+            crawler_type_var.set(self.config.CRAWLER_TYPE)
             if config.CRAWLER_TYPE == "search":
                 # Search for notes and retrieve their comment information.
                 await self.search()
             elif config.CRAWLER_TYPE == "detail":
                 # Get the information and comments of the specified post
-                await self.get_specified_notes()
+                await self.get_specified_notes(self.config.ZHIHU_SPECIFIED_ID_LIST)
             elif config.CRAWLER_TYPE == "creator":
                 # Get creator's information and their notes and comments
                 await self.get_creators_and_notes()
@@ -136,10 +137,10 @@ class ZhihuCrawler(AbstractCrawler):
         """Search for notes and retrieve their comment information."""
         utils.logger.info("[ZhihuCrawler.search] Begin search zhihu keywords")
         zhihu_limit_count = 20  # zhihu limit page fixed value
-        if config.CRAWLER_MAX_NOTES_COUNT < zhihu_limit_count:
-            config.CRAWLER_MAX_NOTES_COUNT = zhihu_limit_count
-        start_page = config.START_PAGE
-        for keyword in config.KEYWORDS.split(","):
+        if self.config.CRAWLER_MAX_NOTES_COUNT < zhihu_limit_count:
+            self.config.CRAWLER_MAX_NOTES_COUNT = zhihu_limit_count
+        start_page = self.config.START_PAGE
+        for keyword in self.config.KEYWORDS.split(","):
             source_keyword_var.set(keyword)
             utils.logger.info(
                 f"[ZhihuCrawler.search] Current search keyword: {keyword}"
@@ -171,12 +172,13 @@ class ZhihuCrawler(AbstractCrawler):
                         break
 
                     # Sleep after page navigation
-                    await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                    utils.logger.info(f"[ZhihuCrawler.search] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
+                    await asyncio.sleep(self.config.CRAWLER_MAX_SLEEP_SEC)
+                    utils.logger.info(f"[ZhihuCrawler.search] Sleeping for {self.config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
                     
                     page += 1
-                    for content in content_list:
-                        await zhihu_store.update_zhihu_content(content)
+                    if self.config.SAVE_DATA_OPTION == "db":
+                        for content in content_list:
+                            await zhihu_store.update_zhihu_content(content)
 
                     await self.batch_get_content_comments(content_list)
                 except DataFetchError:
@@ -192,13 +194,13 @@ class ZhihuCrawler(AbstractCrawler):
         Returns:
 
         """
-        if not config.ENABLE_GET_COMMENTS:
+        if not self.config.ENABLE_GET_COMMENTS:
             utils.logger.info(
                 f"[ZhihuCrawler.batch_get_content_comments] Crawling comment mode is not enabled"
             )
             return
 
-        semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
+        semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENCY_NUM)
         task_list: List[Task] = []
         for content_item in content_list:
             task = asyncio.create_task(
@@ -225,12 +227,12 @@ class ZhihuCrawler(AbstractCrawler):
             )
             
             # Sleep before fetching comments
-            await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-            utils.logger.info(f"[ZhihuCrawler.get_comments] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds before fetching comments for content {content_item.content_id}")
+            await asyncio.sleep(self.config.CRAWLER_MAX_SLEEP_SEC)
+            utils.logger.info(f"[ZhihuCrawler.get_comments] Sleeping for {self.config.CRAWLER_MAX_SLEEP_SEC} seconds before fetching comments for content {content_item.content_id}")
             
             await self.zhihu_client.get_note_all_comments(
                 content=content_item,
-                crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,
+                crawl_interval=self.config.CRAWLER_MAX_SLEEP_SEC,
                 callback=zhihu_store.batch_update_zhihu_note_comments,
             )
 
@@ -243,7 +245,7 @@ class ZhihuCrawler(AbstractCrawler):
         utils.logger.info(
             "[ZhihuCrawler.get_creators_and_notes] Begin get xiaohongshu creators"
         )
-        for user_link in config.ZHIHU_CREATOR_URL_LIST:
+        for user_link in self.config.ZHIHU_CREATOR_URL_LIST:
             utils.logger.info(
                 f"[ZhihuCrawler.get_creators_and_notes] Begin get creator {user_link}"
             )
@@ -268,7 +270,7 @@ class ZhihuCrawler(AbstractCrawler):
             # Get all anwser information of the creator
             all_content_list = await self.zhihu_client.get_all_anwser_by_creator(
                 creator=createor_info,
-                crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,
+                crawl_interval=self.config.CRAWLER_MAX_SLEEP_SEC,
                 callback=zhihu_store.batch_update_zhihu_contents,
             )
 
@@ -347,14 +349,14 @@ class ZhihuCrawler(AbstractCrawler):
                 
                 return result
 
-    async def get_specified_notes(self):
+    async def get_specified_notes(self, note_ids):
         """
         Get the information and comments of the specified post
         Returns:
 
         """
         get_note_detail_task_list = []
-        for full_note_url in config.ZHIHU_SPECIFIED_ID_LIST:
+        for full_note_url in note_ids:
             # remove query params
             full_note_url = full_note_url.split("?")[0]
             crawler_task = self.get_note_detail(

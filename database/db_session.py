@@ -53,8 +53,12 @@ async def create_tables(db_type: str = None):
 
 
 @asynccontextmanager
-async def get_session() -> AsyncSession:
-    engine = get_async_engine(config.SAVE_DATA_OPTION)
+async def get_session(save_data_option: str = None) -> AsyncSession:
+    # 如果没有提供save_data_option，则使用全局配置
+    if save_data_option is None:
+        save_data_option = config.SAVE_DATA_OPTION
+    
+    engine = get_async_engine(save_data_option)
     if not engine:
         yield None
         return

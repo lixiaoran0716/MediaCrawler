@@ -25,6 +25,7 @@ from media_platform.weibo import WeiboCrawler
 from media_platform.xhs import XiaoHongShuCrawler
 from media_platform.zhihu import ZhihuCrawler
 from media_platform.nytimes.core import NYTimesCrawler
+from media_platform.qqnews.core import QQNewsCrawler
 
 
 class CrawlerFactory:
@@ -37,6 +38,7 @@ class CrawlerFactory:
         "tieba": TieBaCrawler,
         "zhihu": ZhihuCrawler,
         "nytimes": NYTimesCrawler,
+        "qqnews": QQNewsCrawler,
     }
 
     @staticmethod

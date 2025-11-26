@@ -111,6 +111,12 @@ REQUEST_TIMEOUT = 30
 # 爬取间隔时间
 CRAWLER_MAX_SLEEP_SEC = 2
 
+# 基础配置类
+class Config:
+    """基础配置类"""
+    def __init__(self):
+        pass
+
 from .bilibili_config import *
 from .xhs_config import *
 from .dy_config import *
@@ -118,3 +124,4 @@ from .ks_config import *
 from .weibo_config import *
 from .tieba_config import *
 from .zhihu_config import *
+from .qqnews_config import *

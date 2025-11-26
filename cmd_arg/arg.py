@@ -38,6 +38,7 @@ class PlatformEnum(str, Enum):
     TIEBA = "tieba"
     ZHIHU = "zhihu"
     NYTIMES = "nytimes"
+    QQNEWS = "qqnews"
 
 
 class LoginTypeEnum(str, Enum):
@@ -133,7 +134,7 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
             PlatformEnum,
             typer.Option(
                 "--platform",
-                help="媒体平台选择 (xhs=小红书 | dy=抖音 | ks=快手 | bili=哔哩哔哩 | wb=微博 | tieba=百度贴吧 | zhihu=知乎 | nytimes=纽约时报)",
+                help="媒体平台选择 (xhs=小红书 | dy=抖音 | ks=快手 | bili=哔哩哔哩 | wb=微博 | tieba=百度贴吧 | zhihu=知乎 | nytimes=纽约时报 | qqnews=腾讯新闻)",
                 rich_help_panel="基础配置",
             ),
         ] = _coerce_enum(PlatformEnum, config.PLATFORM, PlatformEnum.XHS),
@@ -169,6 +170,14 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
                 rich_help_panel="基础配置",
             ),
         ] = config.KEYWORDS,
+        qqnews_specified_notes: Annotated[
+            Optional[str],
+            typer.Option(
+                None, "--qqnews-specified-notes",
+                help="指定要爬取的腾讯新闻URL列表，多个URL用逗号分隔",
+                rich_help_panel="基础配置",
+            ),
+        ] = None,
         get_comment: Annotated[
             str,
             typer.Option(
@@ -230,6 +239,10 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
         config.ENABLE_GET_SUB_COMMENTS = enable_sub_comment
         config.SAVE_DATA_OPTION = save_data_option.value
         config.COOKIES = cookies
+
+        # 如果是QQNews平台且提供了指定新闻URL列表，则更新配置
+        if platform == PlatformEnum.QQNEWS and qqnews_specified_notes:
+            config.qq_news_config.SPECIFIED_NOTES = qqnews_specified_notes.split(',')
 
         return SimpleNamespace(
             platform=config.PLATFORM,

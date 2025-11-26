@@ -267,15 +267,20 @@ class XiaoHongShuClient(AbstractApiClient):
             "xsec_token": xsec_token,
         }
         uri = "/api/sns/web/v1/feed"
-        res = await self.post(uri, data)
-        if res and res.get("items"):
-            res_dict: Dict = res["items"][0]["note_card"]
-            return res_dict
-        # 爬取频繁了可能会出现有的笔记能有结果有的没有
-        utils.logger.error(
-            f"[XiaoHongShuClient.get_note_by_id] get note id:{note_id} empty and res:{res}"
-        )
-        return dict()
+        max_retries = 3
+        retry_delay = 1
+        for attempt in range(max_retries):
+            res = await self.post(uri, data)
+            if res and res.get("items"):
+                res_dict: Dict = res["items"][0]["note_card"]
+                return res_dict
+            if attempt < max_retries - 1:
+                utils.logger.warning(f"[XiaoHongShuClient.get_note_by_id] Retrying note {note_id}, attempt {attempt + 1}")
+                await asyncio.sleep(retry_delay)
+        # All retries failed
+        error_msg = f"[XiaoHongShuClient.get_note_by_id] get note id:{note_id} empty after {max_retries} retries, res:{res}"
+        utils.logger.error(error_msg)
+        raise DataFetchError(error_msg)
 
     async def get_note_comments(
         self,

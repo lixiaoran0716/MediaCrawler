@@ -283,7 +283,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
         async with semaphore:
             try:
                 utils.logger.info(f"[get_note_detail_async_task] Begin get note detail, note_id: {note_id}")
-                note_detail = await self.xhs_client.get_note_by_id_from_html(note_id, xsec_source, xsec_token, enable_cookie=True)
+                note_detail = await self.xhs_client.get_note_by_id(note_id, xsec_source, xsec_token)
                 if not note_detail:
                     raise Exception(f"[get_note_detail_async_task] Failed to get note detail, Id: {note_id}")
 
@@ -294,12 +294,17 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 utils.logger.info(f"[get_note_detail_async_task] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching note {note_id}")
                 
                 return note_detail
-
+            except RetryError as ex:
+                utils.logger.error(f"[XiaoHongShuCrawler.get_note_detail_async_task] Retry attempts exhausted: {ex}")
+                return None
             except DataFetchError as ex:
                 utils.logger.error(f"[XiaoHongShuCrawler.get_note_detail_async_task] Get note detail error: {ex}")
                 return None
             except KeyError as ex:
-                utils.logger.error(f"[XiaoHongShuCrawler.get_note_detail_async_task] have not fund note detail note_id:{note_id}, err: {ex}")
+                utils.logger.error(f"[XiaoHongShuCrawler.get_note_detail_async_task] have not found note detail note_id:{note_id}, err: {ex}")
+                return None
+            except Exception as ex:
+                utils.logger.error(f"[XiaoHongShuCrawler.get_note_detail_async_task] Unexpected error: {ex}")
                 return None
 
     async def batch_get_note_comments(self, note_list: List[str], xsec_tokens: List[str]):

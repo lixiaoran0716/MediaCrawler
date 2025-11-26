@@ -17,6 +17,7 @@
 
 import asyncio
 import time
+import weakref
 from typing import Any, Dict, List, Optional, Tuple
 
 from cache.abs_cache import AbstractCache
@@ -27,7 +28,7 @@ class ExpiringLocalCache(AbstractCache):
     def __init__(self, cron_interval: int = 10):
         """
         初始化本地缓存
-        :param cron_interval: 定时清楚cache的时间间隔
+        :param cron_interval: 定时清理cache的时间间隔
         :return:
         """
         self._cron_interval = cron_interval
@@ -35,14 +36,17 @@ class ExpiringLocalCache(AbstractCache):
         self._cron_task: Optional[asyncio.Task] = None
         # 开启定时清理任务
         self._schedule_clear()
+        self._finalizer = weakref.finalize(self, self._cleanup_task)
 
-    def __del__(self):
-        """
-        析构函数，清理定时任务
-        :return:
-        """
-        if self._cron_task is not None:
+    def _cleanup_task(self):
+        if self._cron_task is not None and not self._cron_task.done():
             self._cron_task.cancel()
+            try:
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.run_until_complete(self._cron_task)
+            except (RuntimeError, asyncio.CancelledError):
+                pass
 
     def get(self, key: str) -> Optional[Any]:
         """
